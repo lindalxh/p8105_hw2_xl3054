@@ -5,28 +5,11 @@ date: "2025-10-02"
 output: github_document
 ---
 
-
-questions:
-1. P1 pols-month data: prez_gop = 2?
-2. %>%  &  |>
-3. can i use $ for column specific? NO
-4. prob 2: omit rows that do not include dumpster-specific data, omit the total row?
-          after combining rows, missing just leave as NA?
-5. mr_trash_clean - date and year/month not match
-6. suggested using piping, points off if we write one by one?
-7. prob 3: merge based on county and date?
-8. prob1 points?
-
-
-
-
-
 # Problem 1
 ```{r}
 ## load and clean pols-month data
 library(tidyverse)
-pols_month = read_csv(file = "./P1 data/pols-month.csv")
-pols_month = janitor::clean_names(pols_month)
+pols_month = read_csv(file = "./P1 data/pols-month.csv") %>% janitor::clean_names()
 
 ## break up variable & convert to integers
 pols_date = pols_month %>% 
