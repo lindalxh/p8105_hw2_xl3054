@@ -1,30 +1,152 @@
 ---
 title: "p8105_hw2_xl3054"
-author: "Xinhui Lin"
-date: "2025-09-30"
-output: html_document
+author: "Xinhui Lin (xl3054)"
+date: "2025-10-02"
+output: github_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+questions:
+1. P1 pols-month data: prez_gop = 2?
+2. %>%  &  |>
+3. can i use $ for column specific? NO
+4. prob 2: omit rows that do not include dumpster-specific data, omit the total row?
+          after combining rows, missing just leave as NA?
+5. mr_trash_clean - date and year/month not match
+6. suggested using piping, points off if we write one by one?
+7. prob 3: merge based on county and date?
+8. prob1 points?
+
+
+
+
+
+# Problem 1
+```{r}
+## load and clean pols-month data
+library(tidyverse)
+pols_month = read_csv(file = "./P1 data/pols-month.csv")
+pols_month = janitor::clean_names(pols_month)
+
+## break up variable & convert to integers
+pols_date = pols_month %>% 
+  separate(mon, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(across(c(year, month, day), as.integer))
+
+## replace with month name
+pols_date$month = month.name[pols_date$month]
+
+## use `president` variable for prez_dem and prez_gop, remove variables
+pols_prez = pols_date %>% 
+  mutate(president = case_when(prez_gop == 1 ~ "gop", prez_dem == 1 ~ "dem")) %>% 
+  select(-prez_gop, -prez_dem, -day)
 ```
 
-## R Markdown
+```{r}
+## load and clean snp data
+snp = read_csv(file = "./P1 data/snp.csv")
+snp = janitor::clean_names(snp)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## break up variable & convert to integers
+snp_date = snp %>% 
+  separate(date, into = c("month", "day", "year"), sep = "/") %>% 
+  mutate(across(c(year, month, day), as.integer))
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## replace with month name
+snp_date$month = month.name[snp_date$month]
 
-```{r cars}
-summary(cars)
+## move year and month as leading
+snp_date = snp_date %>% select(year, everything()) %>% select(-day)
+
+## make year consistent with previous
+snp_date = snp_date %>%
+  mutate(year = if_else(year < 50, year + 2000, year + 1900))
 ```
 
-## Including Plots
+```{r}
+## load and clean unemployment data
+unemployment = read_csv(file = "./P1 data/unemployment.csv")
+unemployment = janitor::clean_names(unemployment)
 
-You can also embed plots, for example:
+## change colnames to full name
+names(unemployment)[-1] = month.name[match(names(unemployment)[-1], tolower(month.abb))]
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+## switch from wide to long format
+unemployment_long = unemployment %>% pivot_longer(cols = -year,
+                                                  names_to = "month",
+                                                  values_to = "unemp_rate")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+## merging datasets
+join_12 = left_join(pols_prez, snp_date, by = c("year", "month"))
+
+join_123 = left_join(join_12, unemployment_long, by = c("year", "month"))
+```
+
+Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
+
+
+
+
+# Problem 2
+```{r}
+## load and clean mr trash wheel
+library(readxl)
+mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1)
+mr_trash = janitor::clean_names(mr_trash)
+mr_trash_clean = mr_trash %>% drop_na(dumpster) %>% select(-c(15, 16))
+
+## round & integer
+mr_trash_clean$sports_balls = as.integer(round(mr_trash_clean$sports_balls))
+```
+
+```{r}
+## load and clean prof trash wheel
+prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1)
+prof_trash = janitor::clean_names(prof_trash)
+prof_trash_clean = drop_na(prof_trash, dumpster)
+
+## load and clean prof trash wheel
+gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 4, skip = 1)
+gwynnda_trash = janitor::clean_names(gwynnda_trash)
+gwynnda_trash_clean = drop_na(gwynnda_trash, dumpster)
+```
+
+```{r}
+## gwynnda + glass_bottles, prof&gwy + sports_balls
+mr_trash_clean$year = as.double(mr_trash_clean$year)
+
+combined_trash = bind_rows(mr_trash_clean, prof_trash_clean, gwynnda_trash_clean)
+```
+
+
+In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` observations in total. The dataset shows dates from `r min(combined_trash$date)` to `r max(combined_trash$date)`.
+
+
+`r sum(prof_trash_clean$weight_tons)`
+
+Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?
+
+ 
+
+
+# Problem 3
+```{r}
+## load and clean data
+zip_codes = read_csv(file = "./P3 data/Zip Codes.csv")
+zip_codes_clean = janitor::clean_names(zip_codes)
+
+zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv")
+zori_clean = janitor::clean_names(zori)
+```
+
+
+ 
+ 
+
+
+
+
+
+
