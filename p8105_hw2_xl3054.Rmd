@@ -40,8 +40,8 @@ unemployment = read_csv(file = "./P1 data/unemployment.csv") %>%  ## load data
 
 ## merging datasets
 join_12 = left_join(pols_month, snp, by = c("year", "month"))
-
-join_123 = left_join(join_12, unemployment, by = c("year", "month"))
+join_123 = left_join(join_12, unemployment, by = c("year", "month")) %>% 
+  select(year, month, president, everything())
 ```
 
 The `pols_month` dataset contains `r nrow(pols_month)` observations with variables describing the number of democratic and republican governors and senators from `r min(pull(pols_month, year))` to `r max(pull(pols_month, year))`. The `president` variable indicates whether the president was republican or democratic in each year. The `snp` dataset contains `r nrow(snp)` observations with the variable `close` on the closing values of the Standard & Poor’s stock index from `r min(pull(snp, year))` to `r max(pull(snp, year))`. The `unemployment` dataset contains the `unemp_rate` variable, which indicates the unemployment rate in each month from `r min(pull(unemployment, year))` to `r max(pull(unemployment, year))`. The combined dataset `join_123` contains `r nrow(join_123)` observations and `r ncol(join_123)` columns in total, which includes variables for number of democratic and republican politicians, closing values of the S&P stock index, and monthly unemployment rate from `r min(pull(join_123, year))` to `r max(pull(join_123, year))`.
@@ -51,37 +51,40 @@ The `pols_month` dataset contains `r nrow(pols_month)` observations with variabl
 ```{r}
 ## mr trash wheel
 library(readxl)
-mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1) %>%  ## load data
+mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+                      sheet = 1, skip = 1) %>% ## load data
   janitor::clean_names() %>%  ## clean data
   drop_na(dumpster) %>%  ## remove na rows "total"
   select(-c(15, 16)) %>%  ## remove notes columns
-  mutate(sports_balls = as.integer(round(sports_balls))) %>%  ## round & convert
-  mutate(year = as.double(year)) ## convert year to integer for combining
+  mutate(sports_balls = as.integer(round(sports_balls)),  ## round & convert
+         year = as.double(year),  ## convert year to integer for combining
+         trash_type = "mr trash")  ## add trash type
 
 ## prof trash wheel
-prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1) %>%  ## load data
+prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+                        sheet = 2, skip = 1) %>% ## load data
   janitor::clean_names() %>% ## clean data
-  drop_na(dumpster)  ## remove na rows "total"
+  drop_na(dumpster) %>%  ## remove na rows "total"
+  mutate(trash_type = "prof trash")  ## add trash type
 
 ## gwynnda trash wheel
-gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 4, skip = 1) %>%  ## load data
+gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+                           sheet = 4, skip = 1) %>%  ## load data
   janitor::clean_names() %>%  ## clean data
-  drop_na(dumpster)  ## remove na rows "total"
+  drop_na(dumpster) %>%  ## remove na rows "total"
+  mutate(trash_type = "gwynnda trash") ## add trash type
 
 ## combining datasets
 combined_trash = bind_rows(mr_trash, prof_trash, gwynnda_trash)
 ```
 
+There are `r nrow(mr_trash)`, `r nrow(prof_trash)`, and `r nrow(gwynnda_trash)` observations in `mr_trash`, `prof_trash`, and `gwynnda_trash` datasets, respectively. Each dataset includes variables regarding the weight of trash, number of plastic/glass bottles, cigarettes, and plastic bags, and other different kinds of trash. In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` observations in total. The total weight of trash collected by Professor Trash Wheel is `r sum(pull(prof_trash, weight_tons))` tons. 
 
-In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` observations in total. The dataset shows dates from `r min(combined_trash$date)` to `r max(combined_trash$date)`.
+```{r}
+gwynnda_2022_6 = gwynnda_trash %>% filter(year == 2022, month == "June")
+```
 
-
-
-
-########## Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?
-
- 
-
+In June of 2022, the total number of cigarette butts collected by Gwynnda is `r sum(pull(gwynnda_2022_6, cigarette_butts))`.
 
 # Problem 3
 ```{r}
@@ -100,19 +103,37 @@ zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>%
   separate(date, into = c("year", "month", "day"), sep = "_") %>% 
   mutate(year = as.integer(year),
     month = month.name[as.integer(month)]) %>%
-  select(-c(state, day))
+  select(-c(state))
 
-combined = left_join(zip_codes, zori, by = c("zip_code" = "region_name")) %>% 
-  select(zip_code, county_fips, region_id,  ## ids
+combined = right_join(zip_codes, zori, by = c("zip_code" = "region_name")) %>% 
+  select(year, month, ## time
+         zip_code, county_fips, region_id,  ## ids
          state_name, city, county_name, region_type, neighborhood, metro, size_rank,  ## geographic
-         year, month,  ## time
          zori) ## metric
 ```
 
+The resulting combined dataset contains `r nrow(combined)` observations in total, with variables indicating and describing the region id, zipcode, area name, neighborhood, and Zillow Observed Rent Index (ZORI) on the last day of each month from `r min(pull(combined, year))` to `r max(pull(combined, year))`. There are `r n_distinct(combined$zip_code)` unique zipcodes included, and `r n_distinct(combined$neighborhood)` unique neighborhoods.
 
+```{r}
+zori_missing = zip_codes %>%
+  anti_join(zori, by = c("zip_code" = "region_name"))
+```
 
+There are `r nrow(zori_missing)` zip codes that appear in the ZIP code dataset, but not in the Zillow Rental Price dataset. These zip codes are likely excluded because the corresponding areas are not primarily residential, and Zillow focuses on residential rental listings. For example, ZIP code 10166 covers the MetLife Building and Grand Central Terminal, which are locations that are commercial rather than residential. Zip code 10474 (Hunts Point) is an industrial and market hub, not a housing area, so rental data is not available. Zip code 10309 includes mostly state parks and shopping centers, which explains its absence from Zillow's rental data.
 
-n_distinct(zip_codes$zip_code)
+```{r}
+top10_drop = combined %>% 
+  filter(year %in% c(2020, 2021), month == "January") %>% 
+  select(zip_code, county_name, county_name, neighborhood, year, zori) %>% 
+  pivot_wider(names_from = year,
+              values_from = zori,
+              names_prefix = "zori_") %>% 
+  mutate(diff_20to21 = zori_2021 - zori_2020) %>% 
+  arrange(diff_20to21) %>% 
+  head(10)
+```
+
+The top 10 largest drop in price from January 2020 to 2021 all happened in Manhattan. The largest drop in price is `r min(pull(top10_drop, diff_20to21))` in `r pull(top10_drop, neighborhood)[1]`.
 
 
 
