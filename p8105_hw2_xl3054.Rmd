@@ -1,7 +1,7 @@
 ---
 title: "p8105_hw2_xl3054"
 author: "Xinhui Lin (xl3054)"
-date: "2025-10-02"
+date: "2025-10-01"
 output: github_document
 ---
 
@@ -14,8 +14,8 @@ pols_month = read_csv(file = "./P1 data/pols-month.csv") %>%  ## load data
   separate(mon, into = c("year", "month", "day"), sep = "-") %>%  ## break up variable
   mutate(across(c(year, month, day), as.integer)) %>%  ## convert to integers
   mutate(month = month.name[month]) %>%  ## replace with month name
-  mutate(president = case_when(prez_gop == 1 ~ "gop", 
-                               prez_dem == 1 ~ "dem")) %>%  ## prez_dem and prez_gop into president
+  mutate(president = case_when(prez_dem == 1 ~ "dem", 
+                               prez_dem == 0 ~ "gop")) %>%  ## prez_dem and prez_gop into president
   select(-prez_gop, -prez_dem, -day)  ## remove variables
 
 ## snp
@@ -76,7 +76,7 @@ combined_trash = bind_rows(mr_trash, prof_trash, gwynnda_trash)
 In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` observations in total. The dataset shows dates from `r min(combined_trash$date)` to `r max(combined_trash$date)`.
 
 
-`r sum(prof_trash_clean$weight_tons)`
+
 
 ########## Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?
 
@@ -87,7 +87,9 @@ In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` obs
 ```{r}
 ## load and clean data
 zip_codes = read_csv(file = "./P3 data/Zip Codes.csv") %>% 
-  janitor::clean_names() 
+  janitor::clean_names() %>% 
+  select(zip_code, county, neighborhood, county_fips) %>% 
+  slice(-c(226, 227))
 
 zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>% 
   janitor::clean_names() %>% 
@@ -95,16 +97,22 @@ zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>%
     names_to = "date",
     values_to = "zori") %>% 
   mutate(date = str_remove(date, "^x")) %>% 
-  select(year, everything()) %>%  
+  separate(date, into = c("year", "month", "day"), sep = "_") %>% 
+  mutate(year = as.integer(year),
+    month = month.name[as.integer(month)]) %>%
+  select(-c(state, day))
 
-inner_join(zip_codes, zori, by = c("zip_code" = "region_name"))
-
-n_distinct(zip_codes$zip_code)
+combined = left_join(zip_codes, zori, by = c("zip_code" = "region_name")) %>% 
+  select(zip_code, county_fips, region_id,  ## ids
+         state_name, city, county_name, region_type, neighborhood, metro, size_rank,  ## geographic
+         year, month,  ## time
+         zori) ## metric
 ```
 
 
 
 
+n_distinct(zip_codes$zip_code)
 
 
 
