@@ -7,100 +7,69 @@ output: github_document
 
 # Problem 1
 ```{r}
-## load and clean pols-month data
 library(tidyverse)
-pols_month = read_csv(file = "./P1 data/pols-month.csv") %>% janitor::clean_names()
+## pols_month
+pols_month = read_csv(file = "./P1 data/pols-month.csv") %>%  ## load data
+  janitor::clean_names() %>%  ## clean data
+  separate(mon, into = c("year", "month", "day"), sep = "-") %>%  ## break up variable
+  mutate(across(c(year, month, day), as.integer)) %>%  ## convert to integers
+  mutate(month = month.name[month]) %>%  ## replace with month name
+  mutate(president = case_when(prez_gop == 1 ~ "gop", 
+                               prez_dem == 1 ~ "dem")) %>%  ## prez_dem and prez_gop into president
+  select(-prez_gop, -prez_dem, -day)  ## remove variables
 
-## break up variable & convert to integers
-pols_date = pols_month %>% 
-  separate(mon, into = c("year", "month", "day"), sep = "-") %>% 
-  mutate(across(c(year, month, day), as.integer))
+## snp
+snp = read_csv(file = "./P1 data/snp.csv") %>%  ## load data
+  janitor::clean_names() %>%  ## clean data
+  separate(date, into = c("month", "day", "year"), sep = "/") %>%  ## break up variable
+  mutate(across(c(year, month, day), as.integer)) %>%  ## convert to integers
+  mutate(month = month.name[month]) %>%  ## replace with month name
+  select(year, everything()) %>%  ## move year as leading
+  select(-day) %>%  ## remove day
+  mutate(year = if_else(year < 50, year + 2000, year + 1900))  ## make year consistent with previous
 
-## replace with month name
-pols_date$month = month.name[pols_date$month]
+## unemployment
+unemployment = read_csv(file = "./P1 data/unemployment.csv") %>%  ## load data
+  janitor::clean_names() %>%  ## clean data
+  rename_with(
+    ~ month.name[match(., tolower(month.abb))],
+    .cols = any_of(tolower(month.abb))) %>%  ## rename month to full names
+  pivot_longer(cols = -year, 
+               names_to = "month", 
+               values_to = "unemp_rate")  ## switch from wide to long format
 
-## use `president` variable for prez_dem and prez_gop, remove variables
-pols_prez = pols_date %>% 
-  mutate(president = case_when(prez_gop == 1 ~ "gop", prez_dem == 1 ~ "dem")) %>% 
-  select(-prez_gop, -prez_dem, -day)
-```
-
-```{r}
-## load and clean snp data
-snp = read_csv(file = "./P1 data/snp.csv")
-snp = janitor::clean_names(snp)
-
-## break up variable & convert to integers
-snp_date = snp %>% 
-  separate(date, into = c("month", "day", "year"), sep = "/") %>% 
-  mutate(across(c(year, month, day), as.integer))
-
-## replace with month name
-snp_date$month = month.name[snp_date$month]
-
-## move year and month as leading
-snp_date = snp_date %>% select(year, everything()) %>% select(-day)
-
-## make year consistent with previous
-snp_date = snp_date %>%
-  mutate(year = if_else(year < 50, year + 2000, year + 1900))
-```
-
-```{r}
-## load and clean unemployment data
-unemployment = read_csv(file = "./P1 data/unemployment.csv")
-unemployment = janitor::clean_names(unemployment)
-
-## change colnames to full name
-names(unemployment)[-1] = month.name[match(names(unemployment)[-1], tolower(month.abb))]
-
-## switch from wide to long format
-unemployment_long = unemployment %>% pivot_longer(cols = -year,
-                                                  names_to = "month",
-                                                  values_to = "unemp_rate")
-```
-
-```{r}
 ## merging datasets
-join_12 = left_join(pols_prez, snp_date, by = c("year", "month"))
+join_12 = left_join(pols_month, snp, by = c("year", "month"))
 
-join_123 = left_join(join_12, unemployment_long, by = c("year", "month"))
+join_123 = left_join(join_12, unemployment, by = c("year", "month"))
 ```
 
-Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
-
-
+The `pols_month` dataset contains `r nrow(pols_month)` observations with variables describing the number of democratic and republican governors and senators from `r min(pull(pols_month, year))` to `r max(pull(pols_month, year))`. The `president` variable indicates whether the president was republican or democratic in each year. The `snp` dataset contains `r nrow(snp)` observations with the variable `close` on the closing values of the Standard & Poor’s stock index from `r min(pull(snp, year))` to `r max(pull(snp, year))`. The `unemployment` dataset contains the `unemp_rate` variable, which indicates the unemployment rate in each month from `r min(pull(unemployment, year))` to `r max(pull(unemployment, year))`. The combined dataset `join_123` contains `r nrow(join_123)` observations and `r ncol(join_123)` columns in total, which includes variables for number of democratic and republican politicians, closing values of the S&P stock index, and monthly unemployment rate from `r min(pull(join_123, year))` to `r max(pull(join_123, year))`.
 
 
 # Problem 2
 ```{r}
-## load and clean mr trash wheel
+## mr trash wheel
 library(readxl)
-mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1)
-mr_trash = janitor::clean_names(mr_trash)
-mr_trash_clean = mr_trash %>% drop_na(dumpster) %>% select(-c(15, 16))
+mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1) %>%  ## load data
+  janitor::clean_names() %>%  ## clean data
+  drop_na(dumpster) %>%  ## remove na rows "total"
+  select(-c(15, 16)) %>%  ## remove notes columns
+  mutate(sports_balls = as.integer(round(sports_balls))) %>%  ## round & convert
+  mutate(year = as.double(year)) ## convert year to integer for combining
 
-## round & integer
-mr_trash_clean$sports_balls = as.integer(round(mr_trash_clean$sports_balls))
-```
+## prof trash wheel
+prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1) %>%  ## load data
+  janitor::clean_names() %>% ## clean data
+  drop_na(dumpster)  ## remove na rows "total"
 
-```{r}
-## load and clean prof trash wheel
-prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1)
-prof_trash = janitor::clean_names(prof_trash)
-prof_trash_clean = drop_na(prof_trash, dumpster)
+## gwynnda trash wheel
+gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 4, skip = 1) %>%  ## load data
+  janitor::clean_names() %>%  ## clean data
+  drop_na(dumpster)  ## remove na rows "total"
 
-## load and clean prof trash wheel
-gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", sheet = 4, skip = 1)
-gwynnda_trash = janitor::clean_names(gwynnda_trash)
-gwynnda_trash_clean = drop_na(gwynnda_trash, dumpster)
-```
-
-```{r}
-## gwynnda + glass_bottles, prof&gwy + sports_balls
-mr_trash_clean$year = as.double(mr_trash_clean$year)
-
-combined_trash = bind_rows(mr_trash_clean, prof_trash_clean, gwynnda_trash_clean)
+## combining datasets
+combined_trash = bind_rows(mr_trash, prof_trash, gwynnda_trash)
 ```
 
 
@@ -109,7 +78,7 @@ In the combined dataset `combined_trash`, there are `r nrow(combined_trash)` obs
 
 `r sum(prof_trash_clean$weight_tons)`
 
-Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?
+########## Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?
 
  
 
@@ -117,16 +86,22 @@ Write a paragraph about these data; you are encouraged to use inline R. Be sure 
 # Problem 3
 ```{r}
 ## load and clean data
-zip_codes = read_csv(file = "./P3 data/Zip Codes.csv")
-zip_codes_clean = janitor::clean_names(zip_codes)
+zip_codes = read_csv(file = "./P3 data/Zip Codes.csv") %>% 
+  janitor::clean_names() 
 
-zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv")
-zori_clean = janitor::clean_names(zori)
+zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(cols = starts_with("x"),
+    names_to = "date",
+    values_to = "zori") %>% 
+  mutate(date = str_remove(date, "^x")) %>% 
+  select(year, everything()) %>%  
+
+inner_join(zip_codes, zori, by = c("zip_code" = "region_name"))
+
+n_distinct(zip_codes$zip_code)
 ```
 
-
- 
- 
 
 
 
