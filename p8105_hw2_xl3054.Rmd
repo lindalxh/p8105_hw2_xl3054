@@ -9,7 +9,7 @@ output: github_document
 ```{r}
 library(tidyverse)
 ## pols_month
-pols_month = read_csv(file = "./P1 data/pols-month.csv") %>%  ## load data
+pols_month = read_csv(file = "./Data/pols-month.csv") %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   separate(mon, into = c("year", "month", "day"), sep = "-") %>%  ## break up variable
   mutate(across(c(year, month, day), as.integer)) %>%  ## convert to integers
@@ -19,7 +19,7 @@ pols_month = read_csv(file = "./P1 data/pols-month.csv") %>%  ## load data
   select(-prez_gop, -prez_dem, -day)  ## remove variables
 
 ## snp
-snp = read_csv(file = "./P1 data/snp.csv") %>%  ## load data
+snp = read_csv(file = "./Data/snp.csv") %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   separate(date, into = c("month", "day", "year"), sep = "/") %>%  ## break up variable
   mutate(across(c(year, month, day), as.integer)) %>%  ## convert to integers
@@ -29,7 +29,7 @@ snp = read_csv(file = "./P1 data/snp.csv") %>%  ## load data
   mutate(year = if_else(year < 50, year + 2000, year + 1900))  ## make year consistent with previous
 
 ## unemployment
-unemployment = read_csv(file = "./P1 data/unemployment.csv") %>%  ## load data
+unemployment = read_csv(file = "./Data/unemployment.csv") %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   rename_with(
     ~ month.name[match(., tolower(month.abb))],
@@ -51,7 +51,7 @@ The `pols_month` dataset contains `r nrow(pols_month)` observations with variabl
 ```{r}
 ## mr trash wheel
 library(readxl)
-mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+mr_trash = read_excel("./Data/202509 Trash Wheel Collection Data.xlsx", 
                       sheet = 1, skip = 1) %>% ## load data
   janitor::clean_names() %>%  ## clean data
   drop_na(dumpster) %>%  ## remove na rows "total"
@@ -61,14 +61,14 @@ mr_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx",
          trash_type = "mr trash")  ## add trash type
 
 ## prof trash wheel
-prof_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+prof_trash = read_excel("./Data/202509 Trash Wheel Collection Data.xlsx", 
                         sheet = 2, skip = 1) %>% ## load data
   janitor::clean_names() %>% ## clean data
   drop_na(dumpster) %>%  ## remove na rows "total"
   mutate(trash_type = "prof trash")  ## add trash type
 
 ## gwynnda trash wheel
-gwynnda_trash = read_excel("./P2 data/202509 Trash Wheel Collection Data.xlsx", 
+gwynnda_trash = read_excel("./Data/202509 Trash Wheel Collection Data.xlsx", 
                            sheet = 4, skip = 1) %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   drop_na(dumpster) %>%  ## remove na rows "total"
@@ -90,13 +90,13 @@ In June of 2022, the total number of cigarette butts collected by Gwynnda is `r 
 # Problem 3
 ```{r}
 ## zip code
-zip_codes = read_csv(file = "./P3 data/Zip Codes.csv") %>%  ## load data
+zip_codes = read_csv(file = "./Data/Zip Codes.csv") %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   select(zip_code, county, neighborhood, county_fips) %>%  ## select related columns
   slice(-c(226, 227)) ## remove repeated zipcodes
 
 ## zori
-zori = read_csv(file = "./P3 data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>%  ## load data
+zori = read_csv(file = "./Data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>%  ## load data
   janitor::clean_names() %>%  ## clean data
   pivot_longer(cols = starts_with("x"), 
     names_to = "date",
