@@ -85,7 +85,7 @@ There are `r nrow(mr_trash)`, `r nrow(prof_trash)`, and `r nrow(gwynnda_trash)` 
 gwynnda_2022_6 = gwynnda_trash %>% filter(year == 2022, month == "June")
 ```
 
-In June of 2022, the total number of cigarette butts collected by Gwynnda is `r sum(pull(gwynnda_2022_6, cigarette_butts))`.
+In June of 2022, the total number of cigarette butts collected by Gwynnda is `r format(sum(pull(gwynnda_2022_6, cigarette_butts)), scientific = FALSE)`.
 
 # Problem 3
 ```{r}
@@ -115,7 +115,7 @@ combined = right_join(zip_codes, zori, by = c("zip_code" = "region_name")) %>%
          zori) ## metric
 ```
 
-The resulting combined dataset contains `r nrow(combined)` observations in total, with variables indicating and describing the region id, zipcode, area name, neighborhood, and Zillow Observed Rent Index (ZORI) on the last day of each month from `r min(pull(combined, year))` to `r max(pull(combined, year))`. There are `r n_distinct(combined$zip_code)` unique zipcodes included, and `r n_distinct(combined$neighborhood)` unique neighborhoods.
+The resulting combined dataset contains `r nrow(combined)` observations in total, with variables indicating and describing the region id, zipcode, area name, neighborhood, and Zillow Observed Rent Index (ZORI) on the last day of each month from `r min(pull(combined, year))` to `r max(pull(combined, year))`. Within the `r nrow(combined)` observations, there are `r sum(!is.na(pull(combined, zori)))` available ZORI data. There are `r n_distinct(combined$zip_code)` unique zipcodes included, and `r n_distinct(combined$neighborhood)` unique neighborhoods.
 
 ```{r}
 ## missing zip codes in zillow
@@ -141,7 +141,7 @@ top10_drop = combined %>%
 top10_drop
 ```
 
-The top 10 largest drop in price from January 2020 to 2021 all happened in Manhattan. The largest drop in price is `r min(pull(top10_drop, diff_20to21))` in `r pull(top10_drop, neighborhood)[1]`.
+The top 10 largest drop in price from January 2020 to 2021 all happened in Manhattan. The largest drop in price is from `r pull(top10_drop, zori_2020)[1]` to `r pull(top10_drop, zori_2021)[1]` with a drop of `r min(pull(top10_drop, diff_20to21))` in `r pull(top10_drop, neighborhood)[1]`.
 
 
 
